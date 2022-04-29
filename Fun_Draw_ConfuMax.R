@@ -1,3 +1,6 @@
+## https://stackoverflow.com/questions/23891140/r-how-to-visualize-confusion-matrix-using-the-caret-package
+## @Cybernetic  ## https://stackoverflow.com/users/1639594/cybernetic
+
 draw_confusion_matrix <- function(cm) {
   
   layout(matrix(c(1,1,2)))
