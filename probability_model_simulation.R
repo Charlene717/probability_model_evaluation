@@ -5,10 +5,12 @@
 ##### Load Packages  #####
   library(tidyverse)
   library(caret)
+  library(plyr)
   
 ##### Function setting  ##### 
   source("Fun_Draw_ConfuMax.R")
-
+  source("FUN_Beautify_ggplot.R")
+  
 ##### Parameter setting  #####
   n_population = 1000000
   n_sampling = 100
@@ -28,6 +30,28 @@
     "value" = rnorm(n_population,Mean2,1)
   )
 
+  population.df <- rbind(data.frame(population_A.df,Group="A"),
+                         data.frame(population_B.df,Group="B")
+    
+  )
+  
+  ##### Density plot #####
+  # https://www.omicsclass.com/article/1555
+  library(plyr)
+  mu <- ddply(population.df, "Group", summarise, grp.mean=mean(value))
+  head(mu)
+  # Add vline of the average
+  PopulationDen.p <- ggplot(population.df,aes(value,fill=Group, color=Group)) + 
+    xlab("Expression level") + 
+    geom_density(alpha = 0.6, fill = "lightgray") + 
+    geom_vline(data=mu, aes(xintercept=grp.mean, color=Group),
+               linetype="dashed")
+  PopulationDen.p %>% BeautifyggPlot(LegPos = c(0.85, 0.85),AxisTitleSize=1.7,
+                                OL_Thick = 1.5) + 
+    labs(title= "Population",
+         x ="Expression level", y = "Density")
+  
+  
 ##### Case1: sampling from one population #####
   result_1.lt <- seq(1:t_sampling) %>% lapply(
     function(t_sampling){
@@ -48,11 +72,9 @@
                           TP = 0,
                           TN = ((result_1.lt > 0.05) %>% sum)
                         )
-    Case1_OC.lt$ACC = (Case1_OC.lt$TP+Case1_OC.lt$TN)/t_sampling  #FN+TP
-    Case1_OC.lt$Recall <- Case1_OC.lt$TP/(Case1_OC.lt$TP+Case1_OC.lt$FN)
-    Case1_OC.lt$SR <- Case1_OC.lt$TN/(Case1_OC.lt$TN+Case1_OC.lt$FP)
+    Case1_OC.lt$ACC = (Case1_OC.lt$TP+Case1_OC.lt$TN)/t_sampling  
     Case1_OC.lt$T1R <- Case1_OC.lt$FP/t_sampling 
-    Case1_OC.lt$T2R <- Case1_OC.lt$FN/t_sampling 
+
   
   #### Bonferroni correction ####
     # Bon_discovery_rate <- ((result_1.lt <= 0.05/t_sampling) %>% sum)/t_sampling
@@ -64,10 +86,8 @@
                               TN = ((result_1.lt > 0.05/t_sampling) %>% sum)
                             )
     Case1_OC_Bon.lt$ACC = (Case1_OC_Bon.lt$TP+Case1_OC_Bon.lt$TN)/t_sampling  #FN+TP
-    Case1_OC_Bon.lt$Recall <- Case1_OC_Bon.lt$TP/(Case1_OC_Bon.lt$TP+Case1_OC_Bon.lt$FN)
-    Case1_OC_Bon.lt$SR <- Case1_OC_Bon.lt$TN/(Case1_OC_Bon.lt$TN+Case1_OC_Bon.lt$FP)
     Case1_OC_Bon.lt$T1R <- Case1_OC_Bon.lt$FP/t_sampling 
-    Case1_OC_Bon.lt$T2R <- Case1_OC_Bon.lt$FN/t_sampling 
+
 
   #### BH correction ####
     # result_1.df <- result_1.lt %>% unlist %>% data.frame("pvalue"=.) %>% arrange(pvalue)
@@ -90,10 +110,8 @@
                              TN = ((BH_result_1.df$adj_p > 0.05) %>% sum)
                            )
     Case1_OC_BH.lt$ACC = (Case1_OC_BH.lt$TP+Case1_OC_BH.lt$TN)/t_sampling  #FN+TP
-    Case1_OC_BH.lt$Recall <- Case1_OC_BH.lt$TP/(Case1_OC_BH.lt$TP+Case1_OC_BH.lt$FN)
-    Case1_OC_BH.lt$SR <- Case1_OC_BH.lt$TN/(Case1_OC_BH.lt$TN+Case1_OC_BH.lt$FP)
     Case1_OC_BH.lt$T1R <- Case1_OC_BH.lt$FP/t_sampling #TN+FP
-    Case1_OC_BH.lt$T2R <- Case1_OC_BH.lt$FN/t_sampling #TN+FP
+
   
 ##### Case2: sampling fron two population #####
   result_2.lt <- seq(1:t_sampling) %>% lapply(
@@ -117,9 +135,6 @@
                           TN = 0
                          )
     Case2_OC.lt$ACC = (Case2_OC.lt$TP+Case2_OC.lt$TN)/t_sampling  #FN+TP
-    Case2_OC.lt$Recall <- Case2_OC.lt$TP/(Case2_OC.lt$TP+Case2_OC.lt$FN)
-    Case2_OC.lt$SR <- Case2_OC.lt$TN/(Case2_OC.lt$TN+Case2_OC.lt$FP)
-    Case2_OC.lt$T1R <- Case2_OC.lt$FP/t_sampling 
     Case2_OC.lt$T2R <- Case2_OC.lt$FN/t_sampling 
   
   #### Bonferroni correction ####
@@ -132,9 +147,6 @@
                               TN = 0
                             )
     Case2_OC_Bon.lt$ACC = (Case2_OC_Bon.lt$TP+Case2_OC_Bon.lt$TN)/t_sampling  #FN+TP
-    Case2_OC_Bon.lt$Recall <- Case2_OC_Bon.lt$TP/(Case2_OC_Bon.lt$TP+Case2_OC_Bon.lt$FN)
-    Case2_OC_Bon.lt$SR <- Case2_OC_Bon.lt$TN/(Case2_OC_Bon.lt$TN+Case2_OC_Bon.lt$FP)
-    Case2_OC_Bon.lt$T1R <- Case2_OC_Bon.lt$FP/t_sampling 
     Case2_OC_Bon.lt$T2R <- Case2_OC_Bon.lt$FN/t_sampling 
     
   #### BH correction ####
@@ -157,9 +169,6 @@
                                TN = 0
       )
       Case2_OC_BH.lt$ACC = (Case2_OC_BH.lt$TP+Case2_OC_BH.lt$TN)/t_sampling  #FN+TP
-      Case2_OC_BH.lt$Recall <- Case2_OC_BH.lt$TP/(Case2_OC_BH.lt$TP+Case2_OC_BH.lt$FN)
-      Case2_OC_BH.lt$SR <- Case2_OC_BH.lt$TN/(Case2_OC_BH.lt$TN+Case2_OC_BH.lt$FP)
-      Case2_OC_BH.lt$T1R <- Case2_OC_BH.lt$FP/t_sampling 
       Case2_OC_BH.lt$T2R <- Case2_OC_BH.lt$FN/t_sampling 
       
 ##### Visualization #####
@@ -202,7 +211,26 @@
   ## Specificity
   
   
-  
-  
-  
-  
+##### Density plot of P-value frome two cases #####
+    pvalue.df <- rbind(data.frame(pvalue=unlist(result_1.lt),Case="No difference"),
+                    data.frame(pvalue=unlist(result_2.lt),Case="Difference"))
+    ##### Density plot #####
+    # https://www.omicsclass.com/article/1555
+    library(plyr)
+    mu <- ddply(pvalue.df, "Case", summarise, grp.mean=mean(pvalue))
+    head(mu)
+    # Add vline of the average
+    PvalueDen.p <- ggplot(pvalue.df,aes(pvalue,fill= Case, color= Case)) + 
+      xlab("Expression level") + 
+      geom_density(alpha = 0.6, fill = "lightgray") + 
+      geom_vline(data=mu, aes(xintercept=grp.mean, color = Case),
+                 linetype="dashed")
+    PvalueDen.p %>% BeautifyggPlot(LegPos = c(0.85, 0.85),
+                                   AxisTitleSize=1.7,TH= 0.1,
+                                   OL_Thick = 1.5) + 
+      labs(title= "Pvalue",
+           x ="Expression level", y = "Density")
+    
+    # Finding Peak Values For a Density Distribution
+    # http://ianmadd.github.io/pages/PeakDensityDistribution.html
+    
